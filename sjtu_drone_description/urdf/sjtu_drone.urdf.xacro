@@ -64,6 +64,25 @@
   </joint>
   <link name="bottom_cam_link"/>
 
+  <joint name="lidar_joint" type="fixed">
+    <parent link="base_link" />
+    <child link="lidar_link" />
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+  </joint>
+  <link name="lidar_link">
+    <visual>
+            <geometry>
+                <cylinder radius="0.03" length="0.03"/>
+            </geometry>
+            <material name="red"/>
+      </visual>
+      <collision>
+          <geometry>
+              <cylinder radius="0.03" length="0.03"/>
+          </geometry>
+      </collision>
+  </link>
+
 
   <gazebo>
     <plugin name='simple_drone' filename='libplugin_drone.so'>
@@ -303,6 +322,35 @@
           <!-- <remapping>bumper_states:=bumper_states</remapping> -->
         </ros>
         <frame_name>${mp['namespace']}/base_link</frame_name>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="lidar_link">
+    <sensor name="laser" type="ray">
+      <always_on>1</always_on>
+      <visualize>1</visualize>
+      <update_rate>10</update_rate>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>360</samples>
+            <resolution>1.000000</resolution>
+            <min_angle>-3.14</min_angle>
+            <max_angle>3.14</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.2</min>
+          <max>10</max>
+        </range>
+      </ray>
+      <plugin name="laser_controller" filename="libgazebo_ros_ray_sensor.so">
+        <ros>
+          <namespace>${mp['namespace']}</namespace>
+        </ros>
+        <frame_name>${mp['namespace']}/lidar_link</frame_name>
+        <output_type>sensor_msgs/LaserScan</output_type>
       </plugin>
     </sensor>
   </gazebo>

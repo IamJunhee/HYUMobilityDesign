@@ -20,7 +20,7 @@ from std_msgs.msg import Empty
 import sys
 import termios
 import tty
-
+import math as m
 
 MSG = """
 Control Your Drone!
@@ -137,6 +137,30 @@ class TeleopNode(Node):
                 # Land
                 self.publish_cmd_vel()
                 self.land_publisher.publish(Empty())
+            elif key.lower() == '4':
+                # < ^
+                linear_vec = Vector3()
+                linear_vec.x = self.angular_velocity/m.sqrt(2)
+                linear_vec.y = self.angular_velocity/m.sqrt(2)
+                self.publish_cmd_vel(linear_vec)
+            elif key.lower() == '5':
+                # ^ >
+                linear_vec = Vector3()
+                linear_vec.x = self.angular_velocity/m.sqrt(2)
+                linear_vec.y = -self.angular_velocity/m.sqrt(2)
+                self.publish_cmd_vel(linear_vec)
+            elif key.lower() == '1':
+                # < V
+                linear_vec = Vector3()
+                linear_vec.x = -self.angular_velocity/m.sqrt(2)
+                linear_vec.y = self.angular_velocity/m.sqrt(2)
+                self.publish_cmd_vel(linear_vec)
+            elif key.lower() == '2':
+                # V >
+                linear_vec = Vector3()
+                linear_vec.x = -self.angular_velocity/m.sqrt(2)
+                linear_vec.y = -self.angular_velocity/m.sqrt(2)
+                self.publish_cmd_vel(linear_vec)
 
     def get_key(self) -> str:
         """

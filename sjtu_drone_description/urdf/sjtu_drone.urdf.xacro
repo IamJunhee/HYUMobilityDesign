@@ -70,7 +70,7 @@
     <origin rpy="0 0 0" xyz="0 0 0"/>
   </joint>
   <link name="lidar_link"/>
-  
+
   <gazebo>
     <plugin name='simple_drone' filename='libplugin_drone.so'>
       <ros>
@@ -161,15 +161,15 @@
             <max_angle>3.14</max_angle>
           </horizontal>
           <vertical>
-            <samples>50</samples>
+            <samples>80</samples>
             <resolution>1.000000</resolution>
             <min_angle>-3.14</min_angle>
-            <max_angle>0</max_angle>
+            <max_angle>-1</max_angle>
           </vertical>
         </scan>
         <range>
           <min>0.2</min>
-          <max>3</max>
+          <max>1</max>
         </range>
       </ray>
       <plugin name="bottome_laser_controller" filename="libgazebo_ros_ray_sensor.so">
@@ -318,7 +318,7 @@
           </horizontal>
         </scan>
         <range>
-          <min>0.2</min>
+          <min>0.3</min>
           <max>10</max>
         </range>
       </ray>

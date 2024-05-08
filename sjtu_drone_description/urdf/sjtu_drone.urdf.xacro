@@ -148,7 +148,7 @@
   </gazebo>
 
   <gazebo reference="bottom_lidar_link">
-    <sensor name="laser" type="ray">
+    <sensor name="bottom_laser" type="ray">
       <always_on>1</always_on>
       <visualize>1</visualize>
       <update_rate>60</update_rate>
@@ -169,12 +169,13 @@
         </scan>
         <range>
           <min>0.2</min>
-          <max>1</max>
+          <max>3</max>
         </range>
       </ray>
       <plugin name="bottome_laser_controller" filename="libgazebo_ros_ray_sensor.so">
         <ros>
           <namespace>${mp['namespace']}</namespace>
+          <remapping>~/out:=bottom_lidar</remapping>
         </ros>
         <frame_name>${mp['namespace']}/bottom_lidar_link</frame_name>
         <output_type>sensor_msgs/PointCloud2</output_type>
@@ -304,7 +305,7 @@
   </gazebo>
 
   <gazebo reference="lidar_link">
-    <sensor name="laser" type="ray">
+    <sensor name="flat_laser" type="ray">
       <always_on>1</always_on>
       <visualize>1</visualize>
       <update_rate>60</update_rate>
@@ -325,6 +326,7 @@
       <plugin name="laser_controller" filename="libgazebo_ros_ray_sensor.so">
         <ros>
           <namespace>${mp['namespace']}</namespace>
+          <remapping>~/out:=lidar</remapping>
         </ros>
         <frame_name>${mp['namespace']}/lidar_link</frame_name>
         <output_type>sensor_msgs/LaserScan</output_type>

@@ -15,12 +15,12 @@ setup(
     zip_safe=True,
     maintainer='mobility',
     maintainer_email='junhee0110@hanyang.ac.kr',
-    description='TODO: Package description',
+    description='Automatic flight with 2D obstacle avoidance using LiDAR',
     license='Apache-2.0',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "simple_algorithm = 2d_obstacle_avoidance.simple_algorithm:main"
+            "automatic_flight_controller = 2d_obstacle_avoidance.automatic_flight_controller:main"
         ],
     },
 )

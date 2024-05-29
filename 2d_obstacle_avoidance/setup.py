@@ -20,7 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "automatic_flight_controller = 2d_obstacle_avoidance.automatic_flight_controller:main"
+            "automatic_flight_controller = automatic_flight_controller.automatic_flight_controller:main"
         ],
     },
 )

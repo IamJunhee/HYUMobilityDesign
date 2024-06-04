@@ -2,14 +2,19 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan, NavSatFix, Imu
 from geometry_msgs.msg import Twist, Vector3, Quaternion
+from std_msgs.msg import Float32
 import numpy as np
 import math
 
 class AutomaticFlightController(Node):
     def __init__(self):
         super().__init__("automatic_flight_controller")
+
+        #Timer
+        timer_period_ms = 1
+        self.timer = self.create_timer(timer_period_ms / 1000, self.flight_control)
         
-        #Subscriptiself.__directionon
+        #Subscription
         self.lidar_subscriber = self.create_subscription(LaserScan, "/simple_drone/lidar",
                                                           self.__set_lidar, 10)
         self.gps_subscriber = self.create_subscription(NavSatFix, "/simple_drone/gps/nav",
@@ -21,37 +26,33 @@ class AutomaticFlightController(Node):
         
         # Publisher
         self.control_publisher = self.create_publisher(Twist, "/simple_drone/cmd_vel", 10)
-        self.direction_publisher = self.create_publisher(Vector3, "/simple_drone/direction", 10)
+        self.direction_publisher = self.create_publisher(Float32, "/simple_drone/direction", 10)
 
         # Control Info
         self.__lidar : LaserScan = LaserScan()
         self.__gps : NavSatFix = NavSatFix()
         self.__target : NavSatFix = NavSatFix()
-        self.__current_direction : Vector3 = Vector3()
-        self.__direction : Vector3 = Vector3()
+        self.__heading_direction : float = 0.0
+        self.__target_direction : float = 0.0
 
 
     def __set_lidar(self, msg):
         self.__lidar = msg
-        self.flight_control()
 
     def __set_gps(self, msg):
         self.__gps = msg
-        self.flight_control()
 
     def __set_target(self, msg : NavSatFix):
         self.get_logger().info("Set new target lat : %f  long : %f  alt : %f" % (msg.latitude, msg.longitude, msg.altitude))
         self.__target = msg
-        self.flight_control()
 
     def __set_angle(self, msg: Imu):
         quaternion : Quaternion = msg.orientation
-        (self.__current_direction.x, self.__current_direction.y, self.__current_direction.z) \
+        (__, __, z) \
             = euler_from_quaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
-        self.get_logger().info("Current angle x : %f y : %f z : %f" % (self.__current_direction.x, self.__current_direction.y, self.__current_direction.z))
-        self.flight_control()
-
         
+        self.__heading_direction = z
+
     def flight_control(self):
         if self.is_arrival(0.00001):
             self.publish_stop()
@@ -60,8 +61,8 @@ class AutomaticFlightController(Node):
             self.publish_control()
     
     def calculate_distance(self):
-        target = np.array((self.__target.longitude, self.__target.latitude, 0))
-        current = np.array((self.__gps.longitude, self.__gps.latitude, 0))
+        target = np.array((self.__target.longitude, self.__target.latitude))
+        current = np.array((self.__gps.longitude, self.__gps.latitude))
 
         return np.linalg.norm(target - current, 2)
 
@@ -75,31 +76,35 @@ class AutomaticFlightController(Node):
     def calculate_direction(self):
         direction_arr = np.array((
             -(self.__target.latitude - self.__gps.latitude),
-            -(self.__target.longitude - self.__gps.longitude),
-            0.0
+            -(self.__target.longitude - self.__gps.longitude)
         ))
 
         direction_arr = direction_arr / np.linalg.norm(direction_arr, 2)
 
-        self.__direction.x = direction_arr[0]
-        self.__direction.y = direction_arr[1]
-        self.__direction.z = direction_arr[2]
+        self.__target_direction = math.atan2(direction_arr[1], direction_arr[0])
 
-        self.direction_publisher.publish(self.__direction)
+        self.direction_publisher.publish(Float32(data=self.__target_direction))
 
-        self.get_logger().info("current %f, target %f" % (self.__current_direction.z ,math.atan2(self.__direction.y, self.__direction.x)))
+        self.get_logger().info("current %f, target %f" % (self.__heading_direction , self.__target_direction))
         
 
     def publish_control(self):
         k_p = 2.0
+        speed = 10
         angular_vel = Vector3(
             x = 0.0,
             y = 0.0,
-            z = k_p * (math.atan2(self.__direction.y, self.__direction.x) - self.__current_direction.z)
+            z = k_p * (self.__target_direction - self.__heading_direction)
+        )
+
+        linear_vel = Vector3(
+            x = speed * math.cos(self.__target_direction - self.__heading_direction),
+            y = speed * math.sin(self.__target_direction - self.__heading_direction),
+            z = 0.0
         )
         
         self.control_publisher.publish(
-            Twist(linear = Vector3(x = 5.0, y = 0.0, z = 0.0),
+            Twist(linear = linear_vel,
                   angular = angular_vel)
         )
 

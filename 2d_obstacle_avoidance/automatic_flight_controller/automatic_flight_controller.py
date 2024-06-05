@@ -39,8 +39,13 @@ class AutomaticFlightController(Node):
     def __set_lidar(self, msg):
         self.__lidar = msg
 
-    def __set_gps(self, msg):
-        self.__gps = msg
+    def __set_gps(self, msg: NavSatFix):
+        location = NavSatFix(
+            latitude = msg.latitude * (10 ** 6),
+            longitude =  msg.longitude * (10 ** 6),
+            altitude = msg.altitude)
+        
+        self.__gps = location
 
     def __set_target(self, msg : NavSatFix):
         self.get_logger().info("Set new target lat : %f  long : %f  alt : %f" % (msg.latitude, msg.longitude, msg.altitude))
@@ -91,15 +96,16 @@ class AutomaticFlightController(Node):
     def publish_control(self):
         k_p = 2.0
         speed = 10
+        direction_error = calculate_direction_err(self.__target_direction, self.__heading_direction)
         angular_vel = Vector3(
             x = 0.0,
             y = 0.0,
-            z = k_p * (self.__target_direction - self.__heading_direction)
+            z = k_p * direction_error
         )
 
         linear_vel = Vector3(
-            x = speed * math.cos(self.__target_direction - self.__heading_direction),
-            y = speed * math.sin(self.__target_direction - self.__heading_direction),
+            x = speed * math.cos(direction_error),
+            y = speed * math.sin(direction_error),
             z = 0.0
         )
         
@@ -129,6 +135,15 @@ def euler_from_quaternion(x, y, z, w):
     yaw_z = math.atan2(t3, t4)
 
     return roll_x, pitch_y, yaw_z # in radians
+
+def calculate_direction_err(target, current):
+    err = target - current
+    if err > math.pi:
+        err -= 2 * math.pi
+    elif err < -math.pi:
+        err += 2 * math.pi
+
+    return err
 
 def main(args=None):
     rclpy.init(args=args)

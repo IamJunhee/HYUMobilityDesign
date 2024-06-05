@@ -4,29 +4,39 @@ from sensor_msgs.msg import LaserScan, NavSatFix, Imu
 from geometry_msgs.msg import Twist, Vector3, Quaternion
 from std_msgs.msg import Float32
 import numpy as np
-import math
+import math, os, yaml
+from ament_index_python.packages import get_package_share_directory
+
+yaml_file_path = os.path.join(
+        get_package_share_directory('sjtu_drone_bringup'),
+        'config', 'drone.yaml'
+    )
 
 class AutomaticFlightController(Node):
     def __init__(self):
         super().__init__("automatic_flight_controller")
+
+        with open(yaml_file_path, 'r') as f:
+            yaml_dict = yaml.load(f, Loader=yaml.FullLoader)
+            self.model_ns = yaml_dict["namespace"]
 
         #Timer
         timer_period_ms = 1
         self.timer = self.create_timer(timer_period_ms / 1000, self.flight_control)
         
         #Subscription
-        self.lidar_subscriber = self.create_subscription(LaserScan, "/simple_drone/lidar",
+        self.lidar_subscriber = self.create_subscription(LaserScan, "/{}/lidar".format(self.model_ns),
                                                           self.__set_lidar, 10)
-        self.gps_subscriber = self.create_subscription(NavSatFix, "/simple_drone/gps/nav",
+        self.gps_subscriber = self.create_subscription(NavSatFix, "/{}}/gps/nav".format(self.model_ns),
                                                           self.__set_gps, 10)
-        self.target_subscriber = self.create_subscription(NavSatFix, "/simple_drone/target_location",
+        self.target_subscriber = self.create_subscription(NavSatFix, "/{}/target_location".format(self.model_ns),
                                                           self.__set_target, 10)
-        self.imu_subscriber = self.create_subscription(Imu, "/simple_drone/imu/out",
+        self.imu_subscriber = self.create_subscription(Imu, "/{}/imu/out".format(self.model_ns),
                                                         self.__set_angle, 10)
         
         # Publisher
-        self.control_publisher = self.create_publisher(Twist, "/simple_drone/cmd_vel", 10)
-        self.direction_publisher = self.create_publisher(Float32, "/simple_drone/direction", 10)
+        self.control_publisher = self.create_publisher(Twist, "/{}/cmd_vel".format(self.model_ns), 10)
+        self.direction_publisher = self.create_publisher(Float32, "/{}/direction".format(self.model_ns), 10)
 
         # Control Info
         self.__lidar : LaserScan = LaserScan()

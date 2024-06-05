@@ -51,13 +51,13 @@ class AutomaticFlightController(Node):
         self.__lidar = msg
 
     def __set_gps(self, msg: NavSatFix):
-        self.__gps.latitude = msg.latitude * (10 ** 6)
-        self.__gps.longitude =  msg.longitude * (10 ** 6)
+        self.__gps.latitude = msg.latitude * (10 ** 5)
+        self.__gps.longitude =  msg.longitude * (10 ** 5)
         self.__gps.altitude = msg.altitude
 
     def __set_target(self, msg : NavSatFix):
-        self.__target.latitude = msg.latitude * (10 ** 6)
-        self.__target.longitude =  msg.longitude * (10 ** 6)
+        self.__target.latitude = msg.latitude
+        self.__target.longitude =  msg.longitude
         self.__target.altitude = msg.altitude
         # self.get_logger().info("Set new target lat : %f  long : %f  alt : %f" % (location.latitude, location.longitude, location.altitude))
         self.__target_received = True
@@ -74,7 +74,7 @@ class AutomaticFlightController(Node):
 
     def flight_control(self):
         if (self.__target_received): 
-            if self.is_arrival(1):
+            if self.is_arrival(10):
                 self.publish_stop()
             else:
                 self.calculate_direction()
@@ -95,8 +95,8 @@ class AutomaticFlightController(Node):
 
     def calculate_direction(self):
         direction_arr = np.array((
-            -(self.__target.latitude - self.__gps.latitude),
-            -(self.__target.longitude - self.__gps.longitude)
+            -(self.__target.longitude - self.__gps.longitude),
+            -(self.__target.latitude - self.__gps.latitude)
         ))
 
         direction_arr = direction_arr / np.linalg.norm(direction_arr, 2)
@@ -122,8 +122,8 @@ class AutomaticFlightController(Node):
         )
 
         linear_vel = Vector3(
-            x = speed, #-speed * math.cos(direction_error),
-            y = 0.0, #-speed * math.sin(direction_error),
+            x = speed * math.cos(direction_error),
+            y = speed * math.sin(direction_error),
             z = 0.0
         )
         

@@ -39,6 +39,11 @@ def generate_launch_description():
     yaml_file_path = os.path.join(
         get_package_share_directory('sjtu_drone_bringup'),
         'config', 'drone.yaml'
+    )
+
+    world_path = os.path.join(
+        get_package_share_directory('sjtu_drone_bringup'),
+        "world", "small_city.world"
     )   
     
     robot_description_config = xacro.process_file(xacro_file, mappings={"params_path": yaml_file_path})
@@ -86,7 +91,8 @@ def generate_launch_description():
             ),
             launch_arguments={
                               'verbose': "true",
-                              'extra_gazebo_args': 'verbose'}.items()
+                              'extra_gazebo_args': 'verbose',
+                              'world' : world_path}.items()
         ),
 
         OpaqueFunction(function=launch_gzclient),

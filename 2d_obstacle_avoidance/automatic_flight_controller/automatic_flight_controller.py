@@ -27,7 +27,7 @@ class AutomaticFlightController(Node):
         #Subscription
         self.lidar_subscriber = self.create_subscription(LaserScan, "/{}/lidar".format(self.model_ns),
                                                           self.__set_lidar, 10)
-        self.gps_subscriber = self.create_subscription(NavSatFix, "/{}}/gps/nav".format(self.model_ns),
+        self.gps_subscriber = self.create_subscription(NavSatFix, "/{}/gps/nav".format(self.model_ns),
                                                           self.__set_gps, 10)
         self.target_subscriber = self.create_subscription(NavSatFix, "/{}/target_location".format(self.model_ns),
                                                           self.__set_target, 10)
@@ -39,6 +39,7 @@ class AutomaticFlightController(Node):
         self.direction_publisher = self.create_publisher(Float32, "/{}/direction".format(self.model_ns), 10)
 
         # Control Info
+        self.__target_received = False
         self.__lidar : LaserScan = LaserScan()
         self.__gps : NavSatFix = NavSatFix()
         self.__target : NavSatFix = NavSatFix()
@@ -50,30 +51,34 @@ class AutomaticFlightController(Node):
         self.__lidar = msg
 
     def __set_gps(self, msg: NavSatFix):
-        location = NavSatFix(
-            latitude = msg.latitude * (10 ** 6),
-            longitude =  msg.longitude * (10 ** 6),
-            altitude = msg.altitude)
-        
-        self.__gps = location
+        self.__gps.latitude = msg.latitude * (10 ** 6)
+        self.__gps.longitude =  msg.longitude * (10 ** 6)
+        self.__gps.altitude = msg.altitude
 
     def __set_target(self, msg : NavSatFix):
-        self.get_logger().info("Set new target lat : %f  long : %f  alt : %f" % (msg.latitude, msg.longitude, msg.altitude))
-        self.__target = msg
+        self.__target.latitude = msg.latitude * (10 ** 6)
+        self.__target.longitude =  msg.longitude * (10 ** 6)
+        self.__target.altitude = msg.altitude
+        # self.get_logger().info("Set new target lat : %f  long : %f  alt : %f" % (location.latitude, location.longitude, location.altitude))
+        self.__target_received = True
 
     def __set_angle(self, msg: Imu):
         quaternion : Quaternion = msg.orientation
-        (__, __, z) \
+        (__x, __y, z) \
             = euler_from_quaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w)
-        
-        self.__heading_direction = z
+        self.get_logger().info("body angle x : %f  y : %f  z : %f" % (__x, __y, z))
+        if z < 0:
+            self.__heading_direction = 2 * math.pi + z
+        else:
+            self.__heading_direction = z # 0 ~ 2pi
 
     def flight_control(self):
-        if self.is_arrival(0.00001):
-            self.publish_stop()
-        else:
-            self.calculate_direction()
-            self.publish_control()
+        if (self.__target_received): 
+            if self.is_arrival(1):
+                self.publish_stop()
+            else:
+                self.calculate_direction()
+                self.publish_control()
     
     def calculate_distance(self):
         target = np.array((self.__target.longitude, self.__target.latitude))
@@ -96,26 +101,29 @@ class AutomaticFlightController(Node):
 
         direction_arr = direction_arr / np.linalg.norm(direction_arr, 2)
 
-        self.__target_direction = math.atan2(direction_arr[1], direction_arr[0])
-
-        self.direction_publisher.publish(Float32(data=self.__target_direction))
+        temp_target_direction = math.atan2(direction_arr[1], direction_arr[0])
+        if temp_target_direction < 0:
+            self.__target_direction = 2 * math.pi + temp_target_direction
+        else:
+            self.__target_direction = temp_target_direction # 0 ~ 2pi
 
         self.get_logger().info("current %f, target %f" % (self.__heading_direction , self.__target_direction))
         
 
     def publish_control(self):
         k_p = 2.0
-        speed = 10
+        speed = 10.0
         direction_error = calculate_direction_err(self.__target_direction, self.__heading_direction)
+        self.get_logger().info("err : %f" % direction_error)
         angular_vel = Vector3(
             x = 0.0,
             y = 0.0,
-            z = k_p * direction_error
+            z = (k_p * direction_error)
         )
 
         linear_vel = Vector3(
-            x = speed * math.cos(direction_error),
-            y = speed * math.sin(direction_error),
+            x = speed, #-speed * math.cos(direction_error),
+            y = 0.0, #-speed * math.sin(direction_error),
             z = 0.0
         )
         

@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = '2d_obstacle_avoidance'
+package_name = 'obstacle_avoidance'
 
 setup(
     name=package_name,

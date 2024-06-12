@@ -11,8 +11,7 @@ class ObstacleAvoidanceFly(FlyStrategy):
 
     def calculate_xy_velocity(self):
         range_arr = np_replace_inf_to(np.array(self.drone_data.lidar.ranges), self.drone_data.lidar.range_max)
-        range_arr = np.exp(range_arr)
-        obstacle_prob_arr = range_arr/np.sum(range_arr)
+        obstacle_prob_arr = np.log(range_arr / 2)
 
         direction_arr = np.array((
                 -(self.drone_data.target.longitude - self.drone_data.gps.longitude),
@@ -26,27 +25,35 @@ class ObstacleAvoidanceFly(FlyStrategy):
                                     if temp_target_direction < 0 \
                                     else temp_target_direction
 
-        angle_array = np.arange(self.drone_data.lidar.angle_min,self.drone_data.lidar.angle_max+self.drone_data.lidar.angle_increment,self.drone_data.lidar.angle_increment)
-
-        angle_array2 = target_direction - angle_array
-        angle_array2 = (np.cos(angle_array2)+1)/ 2 / 32.9978919434732
+        angle_array = np.linspace(self.drone_data.lidar.angle_min, self.drone_data.lidar.angle_max, len(self.drone_data.lidar.ranges))
+        angle_array += self.drone_data.heading_direction
+        np.putmask(angle_array, angle_array < 0, angle_array + 2 * np.pi)
+        angle_array2 = angle_array - target_direction 
+        angle_array2 = np.cos(angle_array2)
 
         obs_prob_arr2 = obstacle_prob_arr * angle_array2
-        print(np.sum(obstacle_prob_arr))
-        print(np.sum(angle_array2))
-        print(np.sum(obs_prob_arr2))
-        raise Exception()
-        expected_val = np.sum(obs_prob_arr2 * angle_array)
+        obs_prob_arr2 = sum_around(obs_prob_arr2, 100)
+        max_index = np.argmax(obs_prob_arr2)
+        expected_val = angle_array[max_index]
 
         self.get_logger().info("Target Direction : %f" % target_direction)
         self.get_logger().info("expected Direction : %f" % expected_val)
 
-        return 15, expected_val
+        return 30, expected_val
         
     def calculate_z_velocity(self):
         err = self.drone_data.target.altitude - self.drone_data.gps.altitude + 10
         return err
 
+def sum_around(arr, _range):
+    temp_arr = np.copy(arr)
+    last_index = len(temp_arr) - 1
+    for i in range(len(temp_arr)):
+        sum_index = np.array(range(i - _range, i + _range + 1))
+        np.putmask(sum_index, sum_index > last_index, sum_index - last_index - 1)
+        temp_arr[i] = np.sum(temp_arr[sum_index]) / (2 * _range + 1)
+
+    return temp_arr
 
 def np_replace_inf_to(arr, val):
     range_arr = np.copy(arr)

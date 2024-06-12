@@ -11,13 +11,13 @@ class ObstacleAvoidanceFly(FlyStrategy):
 
     def calculate_xy_velocity(self):
         range_arr = np_replace_inf_to(np.array(self.drone_data.lidar.ranges), self.drone_data.lidar.range_max)
-        no_obstacle_prob_arr = np.log(range_arr / 2)
+        no_obstacle_prob_arr = map_function_to_array(self.__function_for_obstacle, range_arr)
 
         target_direction = self.__calculate_target_angle()
         angle_array = self.__generate_angle_array()
 
         angle_diff_array = angle_array - target_direction 
-        target_prob_arr = np.cos(angle_diff_array)
+        target_prob_arr = map_function_to_array(self.__function_for_target, angle_diff_array)
 
         prob_product_arr = no_obstacle_prob_arr * target_prob_arr
         prob_product_arr = sum_around(prob_product_arr, 100)
@@ -50,6 +50,12 @@ class ObstacleAvoidanceFly(FlyStrategy):
 
         return angle_array
 
+    def __function_for_obstacle(self, x):
+        return math.log(x / 2)
+    
+    def __function_for_target(self, x):
+        return math.cos(x)
+    
     def calculate_z_velocity(self):
         err = self.drone_data.target.altitude - self.drone_data.gps.altitude + 10
         return err
@@ -69,6 +75,10 @@ def np_replace_inf_to(arr, val):
     np.putmask(range_arr, np.isinf(arr), val)
 
     return range_arr
+
+def map_function_to_array(func, arr):
+    vect = np.vectorize(func)
+    return vect(arr)
 
 def main(args=None):
     rclpy.init(args=args)

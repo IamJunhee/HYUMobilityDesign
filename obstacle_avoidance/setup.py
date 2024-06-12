@@ -20,7 +20,8 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            "direct_fly_strategy = automatic_flight_controller.direct_fly_strategy:main"
+            "direct_fly_strategy = automatic_flight_controller.direct_fly_strategy:main",
+            "obstacle_avoidance_strategy = automatic_flight_controller.obstacle_avoidance_strategy:main"
         ],
     },
 )

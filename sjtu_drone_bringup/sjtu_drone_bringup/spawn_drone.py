@@ -17,6 +17,7 @@
 import sys
 import rclpy
 from gazebo_msgs.srv import SpawnEntity
+from geometry_msgs.msg import Point, Pose
 
 
 def main(args=None):
@@ -26,12 +27,18 @@ def main(args=None):
 
     content = sys.argv[1]
     namespace = sys.argv[2]
+    x = float(sys.argv[3])
+    y = float(sys.argv[4])
+    z = float(sys.argv[5])
+    
+    spawn_point = Point(x = x, y = y, z = z)
 
     req = SpawnEntity.Request()
     req.name = namespace
     req.xml = content
     req.robot_namespace = namespace
     req.reference_frame = "world"
+    req.initial_pose = Pose(position = spawn_point)
 
     while not cli.wait_for_service(timeout_sec=1.0):
         node.get_logger().info('service not available, waiting again...')

@@ -10,8 +10,9 @@ class ObstacleAvoidanceFly(FlyStrategy):
         self.get_logger().info("Obstacle Avoidance Strategy is started")
 
     def calculate_xy_velocity(self):
-        range_arr = np_replace_inf_to(np.array(self.drone_data.lidar.ranges), self.drone_data.lidar.range_max)
+        range_arr = np_replace_inf_to(np.array(self.drone_data.lidar.ranges), self.drone_data.lidar.range_max * 1.5)
         no_obstacle_prob_arr = map_function_to_array(self.__function_for_obstacle, range_arr)
+        no_obstacle_prob_arr = no_obstacle_prob_arr / np.max(no_obstacle_prob_arr)
 
         target_direction = self.__calculate_target_angle()
         angle_array = self.__generate_angle_array()
@@ -21,7 +22,7 @@ class ObstacleAvoidanceFly(FlyStrategy):
         target_prob_arr = map_function_to_array(self.__function_for_target, angle_diff_array)
 
         prob_product_arr = no_obstacle_prob_arr * target_prob_arr
-        prob_product_arr = sum_around(prob_product_arr, 200)
+        prob_product_arr = sum_around(prob_product_arr, 100)
         
         max_index = np.argmax(prob_product_arr)
         expected_val = angle_array[max_index] + self.drone_data.heading_direction
@@ -56,13 +57,14 @@ class ObstacleAvoidanceFly(FlyStrategy):
         return angle_array
 
     def __function_for_obstacle(self, x):
-        return math.tan((x-10)/20 * math.pi)
+        val = (math.exp(x-5) - 1)
+        return val if val > 0 else 0
 
     def __function_for_target(self, x):
-        return math.cos(x) + 2
+        return (math.cos(x) + 1) / 2.0
     
     def calculate_z_velocity(self):
-        err = self.drone_data.target.altitude - self.drone_data.gps.altitude + 10
+        err = (self.drone_data.target.altitude - self.drone_data.gps.altitude) * 0.2
         return err
 
 def sum_around(arr, _range):

@@ -42,14 +42,6 @@
     </visual>
   </link>
 
-  <joint name="bottom_lidar_joint" type="fixed">
-    <parent link="base_link" />
-    <child link="bottom_lidar_link" />
-    <origin rpy="0 0 0" xyz="0 0 0"/>
-  </joint>
-  <link name="bottom_lidar_link"/>
-
-
   <joint name="front_cam_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.2 0 0"/>
     <parent link="base_link" />
@@ -143,42 +135,6 @@
         </ros>
         <initial_orientation_as_reference>false</initial_orientation_as_reference>
         <frame_name>${mp['namespace']}/base_link</frame_name>
-      </plugin>
-    </sensor>
-  </gazebo>
-
-  <gazebo reference="bottom_lidar_link">
-    <sensor name="bottom_laser" type="ray">
-      <always_on>1</always_on>
-      <visualize>1</visualize>
-      <update_rate>60</update_rate>
-      <ray>
-        <scan>
-          <horizontal>
-            <samples>360</samples>
-            <resolution>1.000000</resolution>
-            <min_angle>-3.14</min_angle>
-            <max_angle>3.14</max_angle>
-          </horizontal>
-          <vertical>
-            <samples>80</samples>
-            <resolution>1.000000</resolution>
-            <min_angle>-3.14</min_angle>
-            <max_angle>-1</max_angle>
-          </vertical>
-        </scan>
-        <range>
-          <min>0.2</min>
-          <max>3</max>
-        </range>
-      </ray>
-      <plugin name="bottome_laser_controller" filename="libgazebo_ros_ray_sensor.so">
-        <ros>
-          <namespace>${mp['namespace']}</namespace>
-          <remapping>~/out:=bottom_lidar</remapping>
-        </ros>
-        <frame_name>${mp['namespace']}/bottom_lidar_link</frame_name>
-        <output_type>sensor_msgs/PointCloud2</output_type>
       </plugin>
     </sensor>
   </gazebo>

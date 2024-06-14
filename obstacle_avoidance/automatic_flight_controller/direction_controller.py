@@ -46,7 +46,7 @@ class DirectionController:
     
     
     def __is_arrival(self):
-        arrival_range = self._config.get("arrivalRange", 1)
+        arrival_range = self._config.get("arrivalRange", 1.2)
 
         distance = calculate_distance(self.__data.target, self.__data.gps)
 

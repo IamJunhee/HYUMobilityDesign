@@ -30,6 +30,7 @@ def generate_launch_description():
     use_sim_time = LaunchConfiguration("use_sim_time", default="true")
     use_gui = DeclareLaunchArgument("use_gui", default_value="true", choices=["true", "false"],
                                     description="Whether to execute gzclient")
+
     xacro_file_name = "sjtu_drone.urdf.xacro"
     pkg_gazebo_ros = get_package_share_directory('gazebo_ros')
     xacro_file = os.path.join(
@@ -39,6 +40,11 @@ def generate_launch_description():
     yaml_file_path = os.path.join(
         get_package_share_directory('sjtu_drone_bringup'),
         'config', 'drone.yaml'
+    )
+
+    world_path = os.path.join(
+        get_package_share_directory('sjtu_drone_bringup'),
+        "world", "small_city.world"
     )   
     
     robot_description_config = xacro.process_file(xacro_file, mappings={"params_path": yaml_file_path})
@@ -46,8 +52,11 @@ def generate_launch_description():
     # get ns from yaml
     model_ns = "drone"
     with open(yaml_file_path, 'r') as f:
-        yaml_dict = yaml.load(f, Loader=yaml.FullLoader)
+        yaml_dict :dict = yaml.load(f, Loader=yaml.FullLoader)
         model_ns = yaml_dict["namespace"] #+ "/"
+        spawn_x = str(yaml_dict.get("spawnX", 8.3))
+        spawn_y = str(yaml_dict.get("spawnY" , 9.0))
+        spawn_z = str(yaml_dict.get("spawnZ", 14.0))
     print("namespace: ", model_ns)
 
     def launch_gzclient(context, *args, **kwargs):
@@ -59,6 +68,9 @@ def generate_launch_description():
                 launch_arguments={'verbose': 'true'}.items()
             )]
         return []
+
+    def get_config_file_name(context, *args, **kwargs):
+        drone_name = context.launch_configurations.get('drone_name') == 'true'
 
     return LaunchDescription([
         use_gui,
@@ -86,7 +98,8 @@ def generate_launch_description():
             ),
             launch_arguments={
                               'verbose': "true",
-                              'extra_gazebo_args': 'verbose'}.items()
+                              'extra_gazebo_args': 'verbose',
+                              'world' : world_path}.items()
         ),
 
         OpaqueFunction(function=launch_gzclient),
@@ -94,7 +107,7 @@ def generate_launch_description():
         Node(
             package="sjtu_drone_bringup",
             executable="spawn_drone",
-            arguments=[robot_desc, model_ns],
+            arguments=[robot_desc, model_ns, spawn_x, spawn_y, spawn_z],
             output="screen"
         ),
 
